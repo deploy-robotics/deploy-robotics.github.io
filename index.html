@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy: The deployment layer for foundation robot models</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --midnight:    #0F1923;
+            --deep-navy:   #1A2A3A;
+            --off-white:   #F5F6F7;
+            --ghost-white: #E8F0F7;
+            --signal-blue: #378ADD;
+            --deploy-green:#1D9E75;
+            --muted:       #6B8299;
+            --border:      #1E3048;
+            --font:        'Inter', system-ui, -apple-system, sans-serif;
+            --mono:        'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        /* ── Hero robot background ───────────────────────── */
+        .hero-wrap { position: relative; overflow: hidden; }
+        .hero-robot {
+            position: absolute;
+            right: -3%;
+            bottom: -5%;
+            width: 56%;
+            max-width: 600px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.18;
+            animation: robot-float 10s ease-in-out infinite;
+            filter: drop-shadow(0 0 24px rgba(55,138,221,0.45));
+        }
+        .hero-robot svg { width: 100%; height: auto; display: block; }
+        @keyframes robot-float {
+            0%,100% { transform: translateY(0px) rotate(0deg); }
+            50%      { transform: translateY(-16px) rotate(0.4deg); }
+        }
+        /* arm joints — transform-origin tuned to each pivot in fill-box coords */
+        .hero-robot .r-link1 {
+            transform-box: fill-box;
+            transform-origin: 91% 92%;   /* shoulder joint */
+            animation: link1-swing 10s ease-in-out infinite;
+        }
+        .hero-robot .r-link2 {
+            transform-box: fill-box;
+            transform-origin: 93% 7%;    /* elbow joint, bbox now includes gripper */
+            animation: link2-swing 10s ease-in-out infinite;
+        }
+        @keyframes link1-swing {
+            0%,100% { transform: rotate(0deg); }
+            50%      { transform: rotate(-4deg); }
+        }
+        @keyframes link2-swing {
+            0%,100% { transform: rotate(0deg); }
+            35%      { transform: rotate(5deg); }
+            70%      { transform: rotate(-3deg); }
+        }
+
+        @media (pointer: fine) {
+            * { cursor: none !important; }
+            #cursor {
+                position: fixed; top: 0; left: 0;
+                width: 10px; height: 10px; border-radius: 50%;
+                background: var(--signal-blue); pointer-events: none;
+                z-index: 99999; transform: translate(-50%,-50%);
+                transition: opacity .18s ease; will-change: transform;
+            }
+            #cursor.is-hidden { opacity: 0; }
+        }
+
+        body {
+            background: var(--midnight); color: var(--ghost-white);
+            font-family: var(--font); font-size: 16px;
+            line-height: 1.7; -webkit-font-smoothing: antialiased;
+        }
+
+        .wave-divider {
+            display: block; width: 100%; overflow: hidden;
+            line-height: 0; margin-bottom: -1px; position: relative;
+        }
+        .wave-divider svg { display: block; width: 100%; height: 48px; }
+
+        .label {
+            font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--signal-blue);
+            margin-bottom: 20px; display: block; font-family: var(--mono);
+        }
+
+        @keyframes pulse-dot {
+            0%,100% { box-shadow: 0 0 0 0 rgba(29,158,117,.5); opacity:1; }
+            50%      { box-shadow: 0 0 0 5px rgba(29,158,117,0); opacity:.85; }
+        }
+
+        /* ── Nav ─────────────────────────────────────────── */
+        nav {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(15,25,35,.92);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 48px; height: 64px;
+        }
+        .logo {
+            font-size: 18px; font-weight: 600; letter-spacing: -.5px;
+            color: var(--ghost-white); text-decoration: none;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .logo-mark {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+            width: 22px; height: 22px; flex-shrink: 0;
+        }
+        .logo-mark span { border-radius: 2px; display: block; }
+        .lm-1,.lm-2 { background: var(--signal-blue); }
+        .lm-3 { background: var(--signal-blue); opacity: .55; }
+        .lm-4 { background: var(--deploy-green); }
+        .nav-right { display: flex; align-items: center; gap: 28px; }
+        .nav-link {
+            font-size: 14px; color: var(--ghost-white); text-decoration: none;
+            opacity: .65; font-weight: 500; transition: opacity .15s;
+        }
+        .nav-link:hover { opacity: 1; }
+        .btn { display: inline-block; text-decoration: none; cursor: pointer; font-family: var(--font); font-weight: 600; transition: background .15s, color .15s, opacity .15s; }
+        .btn-outline {
+            background: transparent; color: var(--signal-blue);
+            border: 1px solid var(--signal-blue); padding: 9px 20px; font-size: 14px;
+        }
+        .btn-outline:hover { background: var(--signal-blue); color: white; }
+        .btn-primary {
+            background: var(--signal-blue); color: white; border: none;
+            padding: 15px 30px; font-size: 15px; font-weight: 700;
+        }
+        .btn-primary:hover { opacity: .88; }
+
+        /* ── Hero ────────────────────────────────────────── */
+        .hero-wrap { background: var(--midnight); }
+        .hero { padding: 120px 48px 100px; max-width: 960px; margin: 0 auto; }
+        .hero h1 {
+            font-size: clamp(44px,6.5vw,84px); font-weight: 800;
+            line-height: 1.04; letter-spacing: -2.5px; margin-bottom: 28px;
+            color: var(--ghost-white);
+        }
+        .hero h1 em { font-style: normal; color: var(--signal-blue); }
+        .hero p {
+            font-size: 19px; color: var(--muted);
+            max-width: 480px; margin-bottom: 40px; line-height: 1.6;
+        }
+        .hero-ctas { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+        .btn-text {
+            font-size: 15px; color: var(--ghost-white); text-decoration: none;
+            opacity: .7; font-weight: 500; transition: opacity .15s, color .15s;
+        }
+        .btn-text:hover { opacity: 1; color: var(--signal-blue); }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 10px;
+            font-size: 12px; color: var(--muted);
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--deploy-green); flex-shrink: 0;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        /* ── Pain ────────────────────────────────────────── */
+        .pain { background: var(--off-white); padding: 96px 48px; }
+        .pain-inner {
+            max-width: 960px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(3,1fr); gap: 56px;
+        }
+        .pain-item { font-size: 17px; line-height: 1.75; color: #3a4a58; }
+        .pain-mark { display: block; font-size: 44px; color: var(--signal-blue); margin-bottom: 14px; line-height: 1; font-style: italic; }
+
+        /* ══ Belt ═══════════════════════════════════════════ */
+        .belt-scroll-outer { height: 400vh; position: relative; }
+        .belt-section {
+            position: sticky; top: 0; height: 100vh;
+            background: var(--midnight);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .belt-header { text-align: center; padding: 48px 48px 28px; flex-shrink: 0; }
+        .belt-header .label { margin-bottom: 12px; }
+        .belt-header h2 {
+            font-size: clamp(24px,3.5vw,48px); font-weight: 700;
+            color: var(--ghost-white); letter-spacing: -1.5px;
+        }
+        .belt-canvas-wrap { position: relative; flex: 1; overflow: hidden; }
+        #belt-canvas { display: block; width: 100%; height: 100%; }
+        .belt-fade { position: absolute; top: 0; bottom: 0; width: 32%; z-index: 10; pointer-events: none; }
+        .belt-fade-l { left:  0; background: linear-gradient(to right,#0F1923 15%,transparent); }
+        .belt-fade-r { right: 0; background: linear-gradient(to left, #0F1923 15%,transparent); }
+        .belt-overlays {
+            position: absolute; top: 2%; left: 50%;
+            transform: translateX(-50%); z-index: 20;
+            pointer-events: none; width: min(560px,88vw); text-align: center;
+        }
+        .belt-card {
+            position: absolute; top: 0; left: 0; right: 0;
+            opacity: 0; transform: translateY(20px); color: var(--ghost-white);
+        }
+        .belt-card .card-label {
+            display: inline-block; font-size: 11px; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--signal-blue); font-weight: 500;
+            margin-bottom: 18px; font-family: var(--mono);
+        }
+        .belt-card h3 {
+            font-size: clamp(26px,3.8vw,46px); font-weight: 700;
+            margin: 0 0 14px; letter-spacing: -.03em; line-height: 1.1;
+        }
+        .belt-card p {
+            font-size: clamp(14px,1.5vw,17px);
+            color: rgba(232,240,247,.65); line-height: 1.7;
+            max-width: 380px; margin: 0 auto;
+        }
+
+        /* ── Guarantee ───────────────────────────────────── */
+        .guarantee-section { background: var(--deep-navy); padding: 96px 48px; }
+        .guarantee-inner {
+            max-width: 960px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; align-items: start;
+        }
+        .guarantee-left h2 {
+            font-size: clamp(32px,4vw,52px); font-weight: 700;
+            letter-spacing: -1.5px; line-height: 1.15; color: var(--ghost-white);
+        }
+        .guarantee-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .guarantee-card { border: 1px solid var(--border); padding: 26px; background: var(--midnight); }
+        .guarantee-card-num {
+            font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+            color: var(--signal-blue); margin-bottom: 12px; display: block;
+            font-family: var(--mono); text-transform: uppercase;
+        }
+        .guarantee-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--ghost-white); }
+        .guarantee-card p  { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+        /* ── Use Cases ───────────────────────────────────── */
+        .usecases { background: var(--off-white); padding: 96px 48px; }
+        .usecases-inner { max-width: 960px; margin: 0 auto; }
+        .usecases-inner h2 {
+            font-size: clamp(28px,3.5vw,44px); font-weight: 700;
+            letter-spacing: -1px; line-height: 1.2; margin-bottom: 48px; color: #1a2a3a;
+        }
+        .usecases-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
+        .usecase-card { border: 1px solid #d4dce6; padding: 32px; background: white; }
+        .usecase-icon { margin-bottom: 20px; }
+        .usecase-card h3 { font-size: 16px; font-weight: 700; color: #1a2a3a; margin-bottom: 8px; }
+        .usecase-card p  { font-size: 14px; color: #5a6a78; line-height: 1.65; margin-bottom: 20px; }
+        .deployable-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--deploy-green); font-family: var(--mono);
+        }
+        .d-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--deploy-green); flex-shrink: 0; }
+
+        /* ── Why Now ─────────────────────────────────────── */
+        .why-now { background: var(--midnight); padding: 96px 48px; }
+        .why-now-inner {
+            max-width: 960px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+        }
+        .why-now h2 {
+            font-size: clamp(28px,3.5vw,44px); font-weight: 700;
+            letter-spacing: -1px; line-height: 1.2; margin-bottom: 32px; color: var(--ghost-white);
+        }
+        .why-bullets { list-style: none; }
+        .why-bullets li {
+            font-size: 15px; color: var(--ghost-white); line-height: 1.7;
+            margin-bottom: 22px; padding-left: 24px; position: relative;
+        }
+        .why-bullets li::before { content: '→'; position: absolute; left: 0; color: var(--signal-blue); }
+        .model-section-label {
+            font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+            display: block; font-family: var(--mono);
+        }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+        .chip {
+            font-size: 11px; font-weight: 500; letter-spacing: .04em;
+            padding: 6px 13px; border: 1px solid var(--border);
+            color: var(--muted); background: var(--deep-navy);
+        }
+        .model-note {
+            font-size: 13px; color: var(--muted); line-height: 1.65;
+            font-style: italic; border-left: 2px solid var(--signal-blue);
+            padding-left: 16px;
+        }
+
+        /* ── Team ────────────────────────────────────────── */
+        .team { background: var(--deep-navy); padding: 96px 48px; }
+        .team-inner { max-width: 960px; margin: 0 auto; }
+        .team-inner h2 {
+            font-size: clamp(28px,3.5vw,44px); font-weight: 700;
+            letter-spacing: -1px; margin-bottom: 48px; color: var(--ghost-white);
+        }
+        .founders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+        .founder-card { border: 1px solid var(--border); padding: 36px; background: var(--midnight); }
+        .founder-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--signal-blue); display: flex; align-items: center;
+            justify-content: center; font-weight: 700; font-size: 15px;
+            color: white; margin-bottom: 20px; letter-spacing: .5px;
+        }
+        .founder-card h3 { font-size: 17px; font-weight: 700; color: var(--ghost-white); margin-bottom: 4px; }
+        .founder-title {
+            font-size: 11px; font-weight: 500; letter-spacing: .12em;
+            text-transform: uppercase; color: var(--signal-blue);
+            margin-bottom: 16px; display: block; font-family: var(--mono);
+        }
+        .founder-bio { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 14px; }
+        .founder-role { font-size: 13px; color: var(--ghost-white); font-weight: 600; opacity: .75; }
+        .team-tagline {
+            font-size: 16px; color: var(--muted); font-style: italic;
+            max-width: 580px; line-height: 1.7;
+            border-left: 2px solid var(--border); padding-left: 20px;
+        }
+
+        /* ── CTA / Contact ───────────────────────────────── */
+        .cta-section { background: var(--midnight); padding: 96px 48px; }
+        .cta-inner {
+            max-width: 960px; margin: 0 auto;
+            display: grid; grid-template-columns: 3fr 2fr; gap: 72px; align-items: start;
+        }
+        .cta-left h2 {
+            font-size: clamp(32px,4vw,48px); font-weight: 700;
+            letter-spacing: -1.5px; margin-bottom: 8px; color: var(--ghost-white);
+        }
+        .cta-left > p { color: var(--muted); margin-bottom: 36px; font-size: 15px; line-height: 1.65; }
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block; font-size: 11px; font-weight: 500;
+            letter-spacing: .1em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 8px; font-family: var(--mono);
+        }
+        input, select, textarea {
+            width: 100%; background: var(--deep-navy);
+            border: 1px solid var(--border); color: var(--ghost-white);
+            padding: 13px 15px; font-size: 15px; font-family: var(--font);
+            outline: none; transition: border-color .15s;
+            border-radius: 0; appearance: none; -webkit-appearance: none;
+        }
+        input::placeholder, textarea::placeholder { color: #374a5a; }
+        input:focus, select:focus, textarea:focus { border-color: var(--signal-blue); }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B8299' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 15px center;
+            padding-right: 40px; cursor: pointer;
+        }
+        select option { background: var(--deep-navy); }
+        textarea { height: 110px; resize: vertical; }
+        .btn-submit {
+            width: 100%; background: var(--signal-blue); color: white;
+            border: none; padding: 16px 28px; font-size: 15px; font-weight: 700;
+            cursor: pointer; margin-top: 8px; font-family: var(--font);
+            transition: opacity .15s;
+        }
+        .btn-submit:hover { opacity: .88; }
+        .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+        .form-success { padding: 48px 0; }
+        .form-success h3 { font-size: 24px; font-weight: 700; margin-bottom: 12px; color: var(--ghost-white); }
+        .form-success p { color: var(--muted); }
+        .cta-right { border-left: 1px solid var(--border); padding-left: 48px; padding-top: 4px; }
+        .cta-right h3 {
+            font-size: 20px; font-weight: 700; letter-spacing: -.5px;
+            margin-bottom: 12px; color: var(--ghost-white);
+        }
+        .cta-right p { color: var(--muted); font-size: 14px; line-height: 1.7; margin-bottom: 24px; }
+        .cta-right a {
+            color: var(--signal-blue); font-size: 15px; font-weight: 600;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .cta-right a:hover { opacity: .8; }
+
+        /* ── Footer ──────────────────────────────────────── */
+        footer {
+            background: var(--deep-navy); padding: 28px 48px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        }
+        .footer-logo { font-weight: 600; font-size: 16px; letter-spacing: -.3px; color: var(--ghost-white); }
+        .footer-center { font-size: 13px; color: var(--muted); }
+        .footer-right { font-size: 13px; color: var(--muted); }
+        .footer-right a { color: var(--signal-blue); text-decoration: none; font-weight: 600; }
+        .footer-copy {
+            width: 100%; font-size: 12px; color: var(--muted);
+            padding-top: 16px; border-top: 1px solid var(--border); text-align: center;
+        }
+
+        /* ── Responsive ──────────────────────────────────── */
+        @media (max-width: 768px) {
+            nav { padding: 0 20px; }
+            .hero { padding: 72px 24px 64px; }
+            .hero h1 { letter-spacing: -1.5px; }
+            .wave-divider svg { height: 28px; }
+            .pain { padding: 64px 24px; }
+            .pain-inner { grid-template-columns: 1fr; gap: 40px; }
+            .belt-scroll-outer { height: 220vh; }
+            .belt-header { padding: 24px 24px 16px; }
+            .belt-header h2 { font-size: 26px; letter-spacing: -1px; }
+            .belt-canvas-wrap { height: 55vh; }
+            .belt-overlays { top: 6%; width: 92vw; }
+            .belt-card h3 { font-size: clamp(18px,5.5vw,24px); }
+            .belt-card p  { font-size: 13px; line-height: 1.55; }
+            .guarantee-section { padding: 64px 24px; }
+            .guarantee-inner { grid-template-columns: 1fr; gap: 48px; }
+            .guarantee-cards { grid-template-columns: 1fr; }
+            .usecases { padding: 64px 24px; }
+            .usecases-grid { grid-template-columns: 1fr; }
+            .why-now { padding: 64px 24px; }
+            .why-now-inner { grid-template-columns: 1fr; gap: 48px; }
+            .team { padding: 64px 24px; }
+            .founders-grid { grid-template-columns: 1fr; }
+            .cta-section { padding: 64px 24px; }
+            .cta-inner { grid-template-columns: 1fr; gap: 48px; }
+            .cta-right { border-left: none; padding-left: 0; border-top: 1px solid var(--border); padding-top: 40px; }
+            footer { padding: 24px 20px; flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+
+<!-- ── Nav ──────────────────────────────────────────────── -->
+<nav>
+    <a href="/" class="logo">
+        <span class="logo-mark" aria-hidden="true">
+            <span class="lm-1"></span><span class="lm-2"></span>
+            <span class="lm-3"></span><span class="lm-4"></span>
+        </span>
+        Deploy
+    </a>
+    <div class="nav-right">
+        <a href="#belt" class="nav-link">How it works</a>
+        <a href="#contact" class="btn btn-outline">Get a pilot</a>
+    </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────── -->
+<div class="hero-wrap">
+<section class="hero">
+    <h1>The deployment layer<br>for <em>foundation robot models.</em></h1>
+    <p>Deploy connects state-of-the-art robot AI to your factory floor, starting with contract packagers. Guaranteed throughput. Day one.</p>
+    <div class="hero-ctas">
+        <a href="#contact" class="btn btn-primary">Request a pilot →</a>
+        <a href="#belt" class="btn-text">See how it works →</a>
+    </div>
+    <div class="status-badge">
+        <span class="status-dot"></span>
+        Pilots active in Bay Area &amp; Midwest
+    </div>
+</section>
+
+<!-- Hero robot background illustration -->
+<div class="hero-robot" aria-hidden="true">
+<svg viewBox="0 0 520 400" xmlns="http://www.w3.org/2000/svg"
+     fill="none" stroke="#378ADD" stroke-linecap="round" stroke-linejoin="round">
+
+  <!-- ── CONVEYOR BELT (bottom-left) ─────────────────────── -->
+  <!-- Belt top face -->
+  <rect x="10" y="291" width="278" height="24" rx="12" stroke-width="2.5"/>
+  <!-- Left end drum -->
+  <circle cx="23"  cy="303" r="20" stroke-width="3"/>
+  <circle cx="23"  cy="303" r="8"  stroke-width="2"/>
+  <!-- Right end drum -->
+  <circle cx="275" cy="303" r="20" stroke-width="3"/>
+  <circle cx="275" cy="303" r="8"  stroke-width="2"/>
+  <!-- Rollers -->
+  <circle cx="68"  cy="308" r="7" stroke-width="2"/>
+  <circle cx="103" cy="308" r="7" stroke-width="2"/>
+  <circle cx="138" cy="308" r="7" stroke-width="2"/>
+  <circle cx="173" cy="308" r="7" stroke-width="2"/>
+  <circle cx="208" cy="308" r="7" stroke-width="2"/>
+  <circle cx="243" cy="308" r="7" stroke-width="2"/>
+  <!-- Support legs -->
+  <rect x="39"  y="323" width="14" height="50" rx="3" stroke-width="2"/>
+  <rect x="235" y="323" width="14" height="50" rx="3" stroke-width="2"/>
+  <rect x="29"  y="369" width="238" height="11" rx="3" stroke-width="2"/>
+  <!-- Boxes on belt -->
+  <rect x="51"  y="265" width="38" height="27" rx="2" stroke-width="2.5"/>
+  <rect x="109" y="265" width="34" height="27" rx="2" stroke-width="2.5"/>
+  <rect x="163" y="265" width="38" height="27" rx="2" stroke-width="2.5"/>
+
+  <!-- ── ROBOT BASE (bottom-right) ───────────────────────── -->
+  <rect x="342" y="357" width="168" height="43" rx="5" stroke-width="3"/>
+  <rect x="355" y="320" width="142" height="40" rx="4" stroke-width="3"/>
+  <rect x="368" y="294" width="118" height="29" rx="3" stroke-width="3"/>
+
+  <!-- ── SHOULDER JOINT ───────────────────────────────────── -->
+  <circle cx="400" cy="290" r="30" stroke-width="4"/>
+  <circle cx="400" cy="290" r="13" stroke-width="2.5"/>
+
+  <!-- ── UPPER ARM (r-link1) ──────────────────────────────── -->
+  <g class="r-link1">
+    <!-- Arm body outline — parallelogram -->
+    <path d="M 420,272 L 235,70 L 195,106 L 375,308 Z" stroke-width="3"/>
+    <!-- Center spine line -->
+    <line x1="400" y1="290" x2="215" y2="88" stroke-width="1.2" stroke-dasharray="6 5"/>
+  </g>
+
+  <!-- ── ELBOW JOINT ──────────────────────────────────────── -->
+  <circle cx="215" cy="88" r="28" stroke-width="3.5"/>
+  <circle cx="215" cy="88" r="11" stroke-width="2"/>
+
+  <!-- ── FOREARM + WRIST + GRIPPER (r-link2) ─────────────── -->
+  <!-- Gripper is nested here so it follows forearm rotation  -->
+  <!-- New bbox: x=41-228 (w=187), y=75-263 (h=188)          -->
+  <!-- Elbow at (215,88): 93% x, 7% y of that bbox            -->
+  <g class="r-link2">
+    <!-- Forearm body -->
+    <path d="M 202,75 L 228,101 L 95,235 L 69,209 Z" stroke-width="2.5"/>
+    <!-- Center spine -->
+    <line x1="215" y1="88" x2="82" y2="222" stroke-width="1.2" stroke-dasharray="5 5"/>
+    <!-- Wrist joint double ring -->
+    <circle cx="82" cy="222" r="16" stroke-width="3"/>
+    <circle cx="82" cy="222" r="6"  stroke-width="2"/>
+    <!-- Gripper housing, aligned with forearm direction -->
+    <path d="M 88,233 L 71,216 L 57,231 L 74,248 Z" stroke-width="2.5"/>
+    <!-- Left jaw -->
+    <path d="M 74,248 L 68,242 L 52,257 L 58,263 Z" stroke-width="2.5"/>
+    <!-- Right jaw -->
+    <path d="M 62,236 L 57,231 L 41,246 L 47,252 Z" stroke-width="2.5"/>
+  </g>
+
+</svg>
+</div>
+
+</div>
+
+<!-- wave: midnight → off-white -->
+<div class="wave-divider" style="background:#0F1923;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" fill="#F5F6F7"/>
+    </svg>
+</div>
+
+<!-- ── Pain ─────────────────────────────────────────────── -->
+<section class="pain">
+    <div class="pain-inner">
+        <div class="pain-item">
+            <span class="pain-mark">&ldquo;</span>
+            The foundation model demos look incredible. Getting it onto our floor is a different story.
+        </div>
+        <div class="pain-item">
+            <span class="pain-mark">&ldquo;</span>
+            Our integrator quoted $400K and nine months. Our labor shortage is happening now.
+        </div>
+        <div class="pain-item">
+            <span class="pain-mark">&ldquo;</span>
+            We switch SKUs every two weeks. Reprogramming isn't an option.
+        </div>
+    </div>
+</section>
+
+<!-- wave: off-white → midnight -->
+<div class="wave-divider" style="background:#F5F6F7;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,0 1080,48 1440,24 L1440,48 L0,48 Z" fill="#0F1923"/>
+    </svg>
+</div>
+
+<!-- ── Belt Section ──────────────────────────────────────── -->
+<div class="belt-scroll-outer" id="belt">
+<section class="belt-section">
+    <div class="belt-header">
+        <span class="label">How it works</span>
+        <h2>The loop that runs your floor.</h2>
+    </div>
+    <div class="belt-canvas-wrap">
+        <canvas id="belt-canvas"></canvas>
+        <div class="belt-overlays">
+            <div class="belt-card">
+                <div class="card-label">01 / 04: Plug in</div>
+                <h3>Connect in days,<br>not months.</h3>
+                <p>Deploy connects your existing robots (Fanuc, ABB, UR, Yaskawa) and factory systems (MES, WMS, SCADA) to a foundation model. No rip and replace.</p>
+            </div>
+            <div class="belt-card">
+                <div class="card-label">02 / 04: Run</div>
+                <h3>Robot takes<br>the task.</h3>
+                <p>Mixed-case palletizing, kitting, and custom packing. The robot runs autonomously from day one, guided by state-of-the-art generalist models.</p>
+            </div>
+            <div class="belt-card">
+                <div class="card-label">03 / 04: Catch</div>
+                <h3>Human catches<br>the edge cases.</h3>
+                <p>When the robot hits an unfamiliar SKU or an edge case, a remote operator takes over in seconds. The line never stops.</p>
+            </div>
+            <div class="belt-card">
+                <div class="card-label">04 / 04: Learn</div>
+                <h3>Every intervention<br>makes it smarter.</h3>
+                <p>Each teleop handoff becomes training data. Your specific SKUs, layouts, and packaging quirks. The model gets better every shift.</p>
+            </div>
+        </div>
+        <div class="belt-fade belt-fade-l"></div>
+        <div class="belt-fade belt-fade-r"></div>
+    </div>
+</section>
+</div>
+
+<!-- wave: midnight → deep-navy -->
+<div class="wave-divider" style="background:#0F1923;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" fill="#1A2A3A"/>
+    </svg>
+</div>
+
+<!-- ── Guarantee ─────────────────────────────────────────── -->
+<section class="guarantee-section">
+    <div class="guarantee-inner">
+        <div class="guarantee-left">
+            <span class="label">The Deploy Promise</span>
+            <h2>We guarantee<br>the work<br>gets done.</h2>
+        </div>
+        <div class="guarantee-cards">
+            <div class="guarantee-card">
+                <span class="guarantee-card-num">01</span>
+                <h4>Teleop safety net</h4>
+                <p>If the robot can't handle it, a human operator takes over in seconds. The line keeps running.</p>
+            </div>
+            <div class="guarantee-card">
+                <span class="guarantee-card-num">02</span>
+                <h4>Uptime SLA</h4>
+                <p>We commit to throughput targets, not "up to X% accuracy." We take on the operational risk.</p>
+            </div>
+            <div class="guarantee-card">
+                <span class="guarantee-card-num">03</span>
+                <h4>No rip and replace</h4>
+                <p>Works with your existing OEM hardware and factory management systems. Deploy is a software layer, not an overhaul.</p>
+            </div>
+            <div class="guarantee-card">
+                <span class="guarantee-card-num">04</span>
+                <h4>Gets smarter over time</h4>
+                <p>Every deployment improves with your specific SKUs and layouts. The longer you run, the better it gets.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- wave: deep-navy → off-white -->
+<div class="wave-divider" style="background:#1A2A3A;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,0 1080,48 1440,24 L1440,48 L0,48 Z" fill="#F5F6F7"/>
+    </svg>
+</div>
+
+<!-- ── Use Cases ──────────────────────────────────────────── -->
+<section class="usecases">
+    <div class="usecases-inner">
+        <span class="label" style="color:#378ADD;">Where we start</span>
+        <h2>Built for the work that<br>changes every week.</h2>
+        <div class="usecases-grid">
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="4" y="14" width="24" height="14" rx="1" stroke="#378ADD" stroke-width="1.5"/>
+                        <rect x="8" y="8" width="16" height="8" rx="1" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M16 4 L16 8" stroke="#378ADD" stroke-width="1.5"/>
+                        <circle cx="16" cy="3" r="1.5" fill="#378ADD"/>
+                        <path d="M10 21 L22 21" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="2 2"/>
+                    </svg>
+                </div>
+                <h3>Mixed-case palletizing</h3>
+                <p>Heterogeneous SKU stacking at line speed. The task that breaks traditional automation.</p>
+                <span class="deployable-badge"><span class="d-dot"></span>Deployable</span>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="10" width="10" height="12" rx="1" stroke="#378ADD" stroke-width="1.5"/>
+                        <rect x="19" y="10" width="10" height="12" rx="1" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M13 16 L19 16" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="2 2"/>
+                        <path d="M8 7 L8 10 M24 7 L24 10" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M5 7 L11 7 M21 7 L27 7" stroke="#378ADD" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <h3>Kitting &amp; assembly</h3>
+                <p>Multi-component kits assembled to spec. Adapts to new configurations without reprogramming.</p>
+                <span class="deployable-badge"><span class="d-dot"></span>Deployable</span>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="6" y="12" width="20" height="16" rx="1" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M6 17 L26 17" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M14 8 C14 8 10 6 10 10 L10 12" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M18 8 C18 8 22 6 22 10 L22 12" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M12 22 L20 22" stroke="#378ADD" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h3>Custom gift sets &amp; bundles</h3>
+                <p>Seasonal and promotional runs that change weekly. The exact use case robots used to fail at.</p>
+                <span class="deployable-badge"><span class="d-dot"></span>Deployable</span>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="4" y="8" width="24" height="18" rx="1" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M4 14 L28 14" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M12 8 L12 14" stroke="#378ADD" stroke-width="1.5"/>
+                        <circle cx="20" cy="20" r="3" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M9 20 L14 20" stroke="#378ADD" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <h3>Order fulfillment &amp; co-packing</h3>
+                <p>DTC and B2B fulfillment with variable SKU mixes. Throughput guaranteed regardless of order complexity.</p>
+                <span class="deployable-badge"><span class="d-dot"></span>Deployable</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- wave: off-white → midnight -->
+<div class="wave-divider" style="background:#F5F6F7;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" fill="#0F1923"/>
+    </svg>
+</div>
+
+<!-- ── Why Now ────────────────────────────────────────────── -->
+<section class="why-now">
+    <div class="why-now-inner">
+        <div>
+            <span class="label">Why now</span>
+            <h2>The models are ready.<br>The factories need them.</h2>
+            <ul class="why-bullets">
+                <li>Foundation models from Physical Intelligence, Skild AI, and Covariant can now handle dexterous manipulation tasks that stumped rigid automation for decades.</li>
+                <li>U.S. manufacturing has 600K+ unfilled jobs. Contract packagers are turning down business they can't staff.</li>
+                <li>No single OEM or integrator owns the model layer. The deployment interface is wide open.</li>
+                <li>The teleop-to-training flywheel means every customer makes the model better for every other customer.</li>
+            </ul>
+        </div>
+        <div>
+            <span class="model-section-label">Foundation model providers</span>
+            <div class="chip-row">
+                <span class="chip">Physical Intelligence</span>
+                <span class="chip">Skild AI</span>
+                <span class="chip">Covariant</span>
+            </div>
+            <span class="model-section-label">OEM robot compatibility</span>
+            <div class="chip-row">
+                <span class="chip">Fanuc</span>
+                <span class="chip">ABB</span>
+                <span class="chip">Universal Robots</span>
+                <span class="chip">Yaskawa</span>
+                <span class="chip">KUKA</span>
+            </div>
+            <p class="model-note">Deploy is model-agnostic. We integrate with the best available model for your task and swap it out as the field advances.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── CTA / Contact ──────────────────────────────────────── -->
+<!--
+TEAM SECTION — commented out temporarily
+
+<div class="wave-divider" style="background:#0F1923;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,0 1080,48 1440,24 L1440,48 L0,48 Z" fill="#1A2A3A"/>
+    </svg>
+</div>
+
+<section class="team">
+    <div class="team-inner">
+        <span class="label">The team</span>
+        <h2>We've shipped robots<br>in the real world.</h2>
+        <div class="founders-grid">
+            <div class="founder-card">
+                <div class="founder-avatar">IK</div>
+                <h3>Irene Grace Karot Polson</h3>
+                <span class="founder-title">Co-founder</span>
+                <p class="founder-bio">Early engineer at AeroVect — autonomous ground vehicles on airport tarmacs. MS Robotics, UPenn GRASP Lab.</p>
+                <span class="founder-role">→ The deployment side.</span>
+            </div>
+            <div class="founder-card">
+                <div class="founder-avatar">SC</div>
+                <h3>Sahith Reddy Chada</h3>
+                <span class="founder-title">Co-founder</span>
+                <p class="founder-bio">ML research at Honda Research Institute. MS Robotics, University of Minnesota.</p>
+                <span class="founder-role">→ The model side.</span>
+            </div>
+        </div>
+        <p class="team-tagline">Seven years between us shipping robots in production environments. Deploy is what we wish had existed.</p>
+    </div>
+</section>
+
+<div class="wave-divider" style="background:#1A2A3A;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" fill="#0F1923"/>
+    </svg>
+</div>
+-->
+<section class="cta-section" id="contact">
+    <div class="cta-inner">
+        <div class="cta-left">
+            <span class="label">Get started</span>
+            <h2>Ready to run a pilot?</h2>
+            <p>Tell us about your facility and task. We'll get back within 48 hours.</p>
+            <form id="pilot-form">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input id="name" type="text" placeholder="Jane Smith" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" placeholder="jane@yourfacility.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="facility">Facility / Company</label>
+                    <input id="facility" type="text" placeholder="Acme Contract Packaging" required>
+                </div>
+                <div class="form-group">
+                    <label for="task">Task</label>
+                    <select id="task" required>
+                        <option value="" disabled selected>Select a task</option>
+                        <option>Mixed-case palletizing</option>
+                        <option>Kitting &amp; assembly</option>
+                        <option>Custom packing</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message (optional)</label>
+                    <textarea id="message" placeholder="Tell us about your current setup, SKU count, shift structure. Anything helps."></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Request a pilot →</button>
+            </form>
+        </div>
+        <div class="cta-right">
+            <span class="label">Investors &amp; accelerators</span>
+            <h3>Building for the long term.</h3>
+            <p>We're talking to investors and accelerators who believe American manufacturing deserves the best AI available.</p>
+            <a href="mailto:hello@deployrobotics.com">Talk to us →</a>
+        </div>
+    </div>
+</section>
+
+<!-- wave: midnight → deep-navy -->
+<div class="wave-divider" style="background:#0F1923;">
+    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,24 C360,0 1080,48 1440,24 L1440,48 L0,48 Z" fill="#1A2A3A"/>
+    </svg>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer>
+    <div class="footer-logo">Deploy</div>
+    <div class="footer-center">San Francisco, CA</div>
+    <div class="footer-right"><a href="mailto:hello@deployrobotics.com">hello@deployrobotics.com</a></div>
+    <div class="footer-copy">© 2025 Deploy. All rights reserved.</div>
+</footer>
+
+<!-- ── Three.js CDN ──────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+
+<script>
+(function () {
+    const wrap   = document.querySelector('.belt-canvas-wrap');
+    const canvas = document.getElementById('belt-canvas');
+    function W() { return wrap.clientWidth; }
+    function H() { return wrap.clientHeight; }
+    const isMobile = window.innerWidth < 768;
+
+    /* ── Renderer ────────────────────────────────────────── */
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 1.5 : 2));
+    renderer.setSize(W(), H());
+    renderer.shadowMap.enabled = !isMobile;
+    renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding    = THREE.sRGBEncoding;
+
+    /* ── Scene ───────────────────────────────────────────── */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0F1923);
+    scene.fog        = new THREE.Fog(0x0F1923, 14, 22);
+
+    /* ── Camera ──────────────────────────────────────────── */
+    const camera = new THREE.PerspectiveCamera(isMobile ? 54 : 36, W() / H(), 0.1, 100);
+    camera.position.set(0, 6.5, isMobile ? 10 : 12);
+    camera.lookAt(0, 2.0, 0);
+
+    /* ── Lights ──────────────────────────────────────────── */
+    const hemi = new THREE.HemisphereLight(0xc8d8ff, 0x0a1520, 0.8);
+    scene.add(hemi);
+
+    const sun = new THREE.DirectionalLight(0xd8ecff, 1.3);
+    sun.position.set(6, 14, 8);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near   = 0.5;
+    sun.shadow.camera.far    = 60;
+    sun.shadow.camera.left   = -18;
+    sun.shadow.camera.right  = 18;
+    sun.shadow.camera.top    = 12;
+    sun.shadow.camera.bottom = -12;
+    sun.shadow.bias          = -0.001;
+    scene.add(sun);
+
+    const rim = new THREE.DirectionalLight(0x378ADD, 0.4);
+    rim.position.set(-8, 5, -6);
+    scene.add(rim);
+
+    /* ── Belt texture ────────────────────────────────────── */
+    const tc = document.createElement('canvas');
+    tc.width = 512; tc.height = 64;
+    const tctx = tc.getContext('2d');
+    tctx.fillStyle = '#0a1520';
+    tctx.fillRect(0, 0, 512, 64);
+    for (let x = 0; x < 512; x += 28) {
+        tctx.fillStyle = 'rgba(55,138,221,0.06)';
+        tctx.fillRect(x, 4, 3, 56);
+    }
+    const eg = tctx.createLinearGradient(0, 0, 0, 64);
+    eg.addColorStop(0,   'rgba(0,0,0,0.4)');
+    eg.addColorStop(0.2, 'rgba(0,0,0,0)');
+    eg.addColorStop(0.8, 'rgba(0,0,0,0)');
+    eg.addColorStop(1,   'rgba(0,0,0,0.4)');
+    tctx.fillStyle = eg;
+    tctx.fillRect(0, 0, 512, 64);
+    const beltTex = new THREE.CanvasTexture(tc);
+    beltTex.wrapS = THREE.RepeatWrapping;
+    beltTex.repeat.set(14, 1);
+
+    /* ── Belt platform ───────────────────────────────────── */
+    const BL = 60, BW = 2.8, BH = 0.18;
+    const beltMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(BL, BH, BW),
+        [
+            new THREE.MeshStandardMaterial({ color: 0x1a2535, roughness: 0.9, metalness: 0.2 }),
+            new THREE.MeshStandardMaterial({ color: 0x1a2535, roughness: 0.9, metalness: 0.2 }),
+            new THREE.MeshStandardMaterial({ map: beltTex, roughness: 0.95, metalness: 0.1 }),
+            new THREE.MeshStandardMaterial({ color: 0x0a1020, roughness: 1.0 }),
+            new THREE.MeshStandardMaterial({ color: 0x151e2a, roughness: 0.9 }),
+            new THREE.MeshStandardMaterial({ color: 0x151e2a, roughness: 0.9 }),
+        ]
+    );
+    beltMesh.position.y = -BH / 2;
+    beltMesh.receiveShadow = true;
+    scene.add(beltMesh);
+
+    /* ── Rollers ─────────────────────────────────────────── */
+    const rollerMat = new THREE.MeshStandardMaterial({ color: 0x4a5a6a, metalness: 0.9, roughness: 0.15 });
+    function addRoller(x) {
+        const r = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, BW + 0.08, 32), rollerMat);
+        r.rotation.x = Math.PI / 2;
+        r.position.set(x, 0, 0);
+        r.castShadow = r.receiveShadow = true;
+        scene.add(r);
+        for (const side of [-1, 1]) {
+            const cap = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.12, 0.06, 16),
+                new THREE.MeshStandardMaterial({ color: 0x8899aa, metalness: 0.9, roughness: 0.1 })
+            );
+            cap.rotation.x = Math.PI / 2;
+            cap.position.set(x, 0, side * (BW / 2 + 0.06));
+            scene.add(cap);
+        }
+    }
+    addRoller(-BL / 2 + 0.44);
+    addRoller( BL / 2 - 0.44);
+
+    /* ── Frame legs ──────────────────────────────────────── */
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a, metalness: 0.8, roughness: 0.35 });
+    const LEG_H = 2.0;
+    function addFrame(x) {
+        for (const z of [-BW / 2 + 0.12, BW / 2 - 0.12]) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, LEG_H, 0.12), frameMat);
+            leg.position.set(x, -BH - LEG_H / 2, z);
+            leg.castShadow = true;
+            scene.add(leg);
+        }
+        const brace = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, BW - 0.24), frameMat);
+        brace.position.set(x, -BH - LEG_H + 0.5, 0);
+        scene.add(brace);
+    }
+    for (let x = -24; x <= 24; x += 6) addFrame(x);
+
+    /* ── Ground ──────────────────────────────────────────── */
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(40, 14),
+        new THREE.ShadowMaterial({ opacity: 0.5 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -BH - LEG_H;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    /* ── Support rollers (cosmetic) ──────────────────────── */
+    const sRollerMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a, metalness: 0.7, roughness: 0.4 });
+    for (let x = -24; x <= 24; x += 4) {
+        const sr = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, BW, 12), sRollerMat);
+        sr.rotation.x = Math.PI / 2;
+        sr.position.set(x, -BH / 2 - 0.09, 0);
+        scene.add(sr);
+    }
+
+    /* ── Box texture (industrial steel-blue) ─────────────── */
+    const ktc = document.createElement('canvas');
+    ktc.width = 512; ktc.height = 512;
+    const kctx = ktc.getContext('2d');
+    kctx.fillStyle = '#1a2e44';
+    kctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 4000; i++) {
+        const bright = Math.random() > 0.55;
+        kctx.fillStyle = `rgba(${bright?60:10},${bright?100:50},${bright?180:120},${Math.random()*0.07})`;
+        kctx.fillRect(Math.random()*512, Math.random()*512, 1+Math.random()*1.5, 1+Math.random()*1.5);
+    }
+    for (let y = 0; y < 512; y += 6) {
+        kctx.fillStyle = `rgba(0,0,0,${0.018+Math.random()*0.022})`;
+        kctx.fillRect(0, y, 512, 1);
+    }
+    const boxTex = new THREE.CanvasTexture(ktc);
+    boxTex.wrapS = boxTex.wrapT = THREE.RepeatWrapping;
+    boxTex.repeat.set(2, 2);
+
+    const matSide   = new THREE.MeshStandardMaterial({ map: boxTex, color: 0x3a5875, roughness: 0.88, metalness: 0.08 });
+    const matTop    = new THREE.MeshStandardMaterial({ map: boxTex, color: 0x4a6a8a, roughness: 0.80, metalness: 0.08 });
+    const matBot    = new THREE.MeshStandardMaterial({               color: 0x1a2a40, roughness: 0.95, metalness: 0.05 });
+    const matInside = new THREE.MeshStandardMaterial({               color: 0x0d1825, roughness: 1.00, metalness: 0.0  });
+    const bodyMats  = [matSide, matSide, matInside, matBot, matSide, matSide];
+    const lidMats   = [matSide, matSide, matTop,    matInside, matSide, matSide];
+    const tapeMat   = new THREE.MeshStandardMaterial({
+        color: 0x1D9E75, emissive: 0x0D6E45, emissiveIntensity: 0.5,
+        roughness: 0.4, metalness: 0.05, transparent: true, opacity: 0.9
+    });
+    const edgeMat   = new THREE.LineBasicMaterial({ color: 0x378ADD, transparent: true, opacity: 0.45 });
+
+    /* ── Boxes ───────────────────────────────────────────── */
+    const BOX_W = 1.35, BOX_H = 1.6, BOX_D = 1.35;
+    const LID_T = 0.08;
+    const LOOP  = 40, N = 4;
+    const START_X = [5, 15, -15, -5];
+
+    const bodyGeo    = new THREE.BoxGeometry(BOX_W, BOX_H, BOX_D);
+    const halfLidGeo = new THREE.BoxGeometry(BOX_W / 2, LID_T, BOX_D);
+    const halfTapeGeo = new THREE.BoxGeometry(BOX_W / 2 * 0.28, 0.012, BOX_D);
+    const bodyEdgeGeo = new THREE.EdgesGeometry(bodyGeo, 10);
+    const lidEdgeGeo  = new THREE.EdgesGeometry(halfLidGeo, 10);
+
+    const boxes = [], rayTargets = [];
+
+    for (let i = 0; i < N; i++) {
+        const group = new THREE.Group();
+        group.position.set(START_X[i], BOX_H / 2, 0);
+        scene.add(group);
+
+        const body = new THREE.Mesh(bodyGeo, bodyMats);
+        body.castShadow = body.receiveShadow = true;
+        body.add(new THREE.LineSegments(bodyEdgeGeo, edgeMat));
+        group.add(body);
+        rayTargets.push(body);
+
+        const PIVOT_Y = BOX_H / 2 + LID_T / 2;
+
+        const leftPivot = new THREE.Group();
+        leftPivot.position.set(-BOX_W / 2, PIVOT_Y, 0);
+        group.add(leftPivot);
+        const leftFlap = new THREE.Mesh(halfLidGeo, lidMats);
+        leftFlap.position.x = BOX_W / 4;
+        leftFlap.castShadow = true;
+        leftFlap.add(new THREE.LineSegments(lidEdgeGeo, edgeMat));
+        leftPivot.add(leftFlap);
+        const leftTape = new THREE.Mesh(halfTapeGeo, tapeMat);
+        leftTape.position.y = LID_T / 2 + 0.006;
+        leftFlap.add(leftTape);
+
+        const rightPivot = new THREE.Group();
+        rightPivot.position.set(BOX_W / 2, PIVOT_Y, 0);
+        group.add(rightPivot);
+        const rightFlap = new THREE.Mesh(halfLidGeo, lidMats);
+        rightFlap.position.x = -BOX_W / 4;
+        rightFlap.castShadow = true;
+        rightFlap.add(new THREE.LineSegments(lidEdgeGeo, edgeMat));
+        rightPivot.add(rightFlap);
+        const rightTape = new THREE.Mesh(halfTapeGeo, tapeMat);
+        rightTape.position.y = LID_T / 2 + 0.006;
+        rightFlap.add(rightTape);
+
+        const glow = new THREE.Mesh(
+            new THREE.BoxGeometry(BOX_W + 0.07, BOX_H + 0.07, BOX_D + 0.07),
+            new THREE.MeshBasicMaterial({
+                color: 0x378ADD, transparent: true,
+                opacity: 0, side: THREE.BackSide, depthWrite: false
+            })
+        );
+        group.add(glow);
+
+        group.userData = { leftPivot, rightPivot, glow, hoverLift: 0, baseY: BOX_H / 2, cardOpacity: 0, cardY: 22 };
+        boxes.push(group);
+    }
+
+    /* ── Raycasting ──────────────────────────────────────── */
+    const raycaster = new THREE.Raycaster();
+    const mouse     = new THREE.Vector2(-999, -999);
+    let   hoveredBox = null;
+
+    canvas.addEventListener('mousemove', e => {
+        const r = canvas.getBoundingClientRect();
+        mouse.x =  ((e.clientX - r.left) / r.width)  * 2 - 1;
+        mouse.y = -((e.clientY - r.top)  / r.height) * 2 + 1;
+    });
+    canvas.addEventListener('mouseleave', () => {
+        mouse.set(-999, -999);
+        hoveredBox = null;
+        canvas.style.cursor = 'default';
+    });
+
+    /* ── Scroll progress ─────────────────────────────────── */
+    const HALF = LOOP / 2, TOTAL_TRAVEL = 40;
+    const beltCards = Array.from(document.querySelectorAll('.belt-card'));
+    boxes.forEach((group, i) => { group.userData.card = beltCards[i]; });
+    const beltOuter = document.querySelector('.belt-scroll-outer');
+
+    function getScrollProgress() {
+        const rect       = beltOuter.getBoundingClientRect();
+        const scrollable = beltOuter.offsetHeight - window.innerHeight;
+        if (scrollable <= 0) return 0;
+        return Math.max(0, Math.min(1, -rect.top / scrollable));
+    }
+
+    let prevProgress = null;
+
+    /* ── Animate ─────────────────────────────────────────── */
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const progress = getScrollProgress();
+        if (prevProgress === null) { prevProgress = progress; }
+        const delta    = progress - prevProgress;
+        prevProgress   = progress;
+        const move     = delta * TOTAL_TRAVEL;
+
+        // Hover detection
+        if (!isMobile) {
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(rayTargets);
+            const hit  = hits.length > 0 ? hits[0].object.parent : null;
+            if (hit !== hoveredBox) {
+                hoveredBox = hit;
+                canvas.style.cursor = hit ? 'pointer' : 'default';
+            }
+        }
+
+        // Belt + box updates
+        boxes.forEach((group) => {
+            const ud      = group.userData;
+            const hovered = group === hoveredBox;
+
+            group.position.x -= move;
+            if (group.position.x < -HALF) group.position.x += LOOP;
+            if (group.position.x >  HALF) group.position.x -= LOOP;
+
+            const OPEN_RADIUS = 3.5;
+            const raw  = Math.max(0, 1 - Math.abs(group.position.x) / OPEN_RADIUS);
+            const openAmount = raw * raw * (3 - 2 * raw);
+
+            const targetLeft  = openAmount *  Math.PI * 0.72;
+            const targetRight = openAmount * -Math.PI * 0.72;
+            ud.leftPivot.rotation.z  += (targetLeft  - ud.leftPivot.rotation.z)  * 0.1;
+            ud.rightPivot.rotation.z += (targetRight - ud.rightPivot.rotation.z) * 0.1;
+
+            const targetLift = openAmount * 0.22;
+            ud.hoverLift += (targetLift - ud.hoverLift) * 0.1;
+            group.position.y = ud.baseY + ud.hoverLift;
+
+            const targetGlow = Math.max(openAmount * 0.2, hovered ? 0.15 : 0);
+            ud.glow.material.opacity += (targetGlow - ud.glow.material.opacity) * 0.1;
+
+            const targetCard = openAmount > 0.2 ? Math.min(1, (openAmount - 0.2) / 0.25) : 0;
+            ud.cardOpacity += (targetCard - ud.cardOpacity) * 0.08;
+            ud.cardY       += ((1 - ud.cardOpacity) * 22 - ud.cardY) * 0.08;
+            if (ud.card) {
+                ud.card.style.opacity   = ud.cardOpacity;
+                ud.card.style.transform = `translateY(${ud.cardY.toFixed(1)}px)`;
+            }
+        });
+
+        beltTex.offset.x += move * 0.055;
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = W() / H();
+        camera.updateProjectionMatrix();
+        renderer.setSize(W(), H());
+    });
+})();
+</script>
+
+<script>
+// ── Pilot form → Google Apps Script ──────────────────────
+const APPS_SCRIPT_URL = '';
+
+(function () {
+    const form = document.getElementById('pilot-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        btn.textContent = 'Sending…';
+        btn.disabled = true;
+
+        const payload = {
+            timestamp: new Date().toISOString(),
+            name:     document.getElementById('name').value,
+            email:    document.getElementById('email').value,
+            facility: document.getElementById('facility').value,
+            task:     document.getElementById('task').value,
+            message:  document.getElementById('message').value,
+        };
+
+        try {
+            if (APPS_SCRIPT_URL) {
+                const qs = new URLSearchParams(payload).toString();
+                await fetch(APPS_SCRIPT_URL + '?' + qs, { mode: 'no-cors' });
+            }
+        } catch (_) {}
+
+        form.closest('.cta-left').querySelector('form').outerHTML = `
+            <div class="form-success">
+                <h3>Request sent ✓</h3>
+                <p>We'll review your request and get back to you within 48 hours.</p>
+            </div>`;
+    });
+})();
+</script>
+
+<script>
+// ── Custom cursor ─────────────────────────────────────────
+(function () {
+    const el = document.getElementById('cursor');
+    if (!el) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+
+    document.addEventListener('mousemove', e => {
+        el.style.transform = `translate(calc(${e.clientX}px - 50%), calc(${e.clientY}px - 50%))`;
+        el.classList.remove('is-hidden');
+    });
+    document.addEventListener('mouseleave', () => el.classList.add('is-hidden'));
+})();
+</script>
+
+</body>
+</html>
