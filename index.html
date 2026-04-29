@@ -171,6 +171,22 @@
 
         /* ── Pain ────────────────────────────────────────── */
         .pain { background: var(--off-white); padding: 96px 48px; }
+        .ticker-wrap { background: var(--off-white); overflow: hidden; padding: 120px 0 48px; }
+        .ticker-track {
+            display: flex; align-items: center; gap: 56px; width: max-content;
+            animation: ticker 40s linear infinite;
+        }
+        .ticker-item {
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            flex-shrink: 0;
+        }
+        .ticker-item svg { opacity: 1; }
+        .ticker-item span {
+            font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+            color: #b0bcc8; white-space: nowrap;
+        }
+        .ticker-sep { color: #d4dce6; font-size: 24px; line-height: 1; flex-shrink: 0; }
+        @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .pain-inner {
             max-width: 960px; margin: 0 auto;
             display: grid; grid-template-columns: repeat(3,1fr); gap: 56px;
@@ -457,7 +473,7 @@
 <!-- Hero robot background illustration -->
 <div class="hero-robot" aria-hidden="true">
 <svg viewBox="0 0 520 400" xmlns="http://www.w3.org/2000/svg"
-     fill="none" stroke="#378ADD" stroke-linecap="round" stroke-linejoin="round">
+     fill="none" stroke="#1A2A3A" stroke-linecap="round" stroke-linejoin="round">
 
   <!-- ── CONVEYOR BELT (bottom-left) ─────────────────────── -->
   <!-- Belt top face -->
@@ -538,7 +554,44 @@
     </svg>
 </div>
 
-<div style="background:#F5F6F7; height:80px;"></div>
+<div class="ticker-wrap">
+    <div class="ticker-track">
+        <!-- set 1 -->
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10" width="10" height="12" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="19" y="10" width="10" height="12" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M13 16 L19 16" stroke="#b0bcc8" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M8 7 L8 10 M24 7 L24 10" stroke="#b0bcc8" stroke-width="1.5"/><path d="M5 7 L11 7 M21 7 L27 7" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Kitting</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="14" width="24" height="12" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M8 14 L8 10 M16 14 L16 8 M24 14 L24 10" stroke="#b0bcc8" stroke-width="1.5"/><path d="M5 10 L11 10 M13 8 L19 8 M21 10 L27 10" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Warehouse automation</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 10 L16 6 L26 10 L26 22 L16 26 L6 22 Z" stroke="#b0bcc8" stroke-width="1.5"/><path d="M16 6 L16 26" stroke="#b0bcc8" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M6 10 L26 10" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Returns processing</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="12" width="20" height="16" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M6 17 L26 17" stroke="#b0bcc8" stroke-width="1.5"/><path d="M14 8 C14 8 10 6 10 10 L10 12" stroke="#b0bcc8" stroke-width="1.5"/><path d="M18 8 C18 8 22 6 22 10 L22 12" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Custom packing</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="8" width="24" height="18" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M4 14 L28 14" stroke="#b0bcc8" stroke-width="1.5"/><path d="M12 8 L12 14" stroke="#b0bcc8" stroke-width="1.5"/><circle cx="20" cy="20" r="3" stroke="#b0bcc8" stroke-width="1.5"/><path d="M9 20 L14 20" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Order fulfillment</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="13" r="5" stroke="#b0bcc8" stroke-width="1.5"/><path d="M8 27 C8 22 24 22 24 27" stroke="#b0bcc8" stroke-width="1.5"/><path d="M16 18 L16 21" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Generalist robots</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="14" width="20" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M22 18 L28 18 L28 20 L22 20" stroke="#b0bcc8" stroke-width="1.5"/><circle cx="7" cy="25" r="2.5" stroke="#b0bcc8" stroke-width="1.5"/><circle cx="17" cy="25" r="2.5" stroke="#b0bcc8" stroke-width="1.5"/><path d="M6 14 L10 8 L18 8 L22 14" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>3PL operations</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="18" y="4" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="4" y="18" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="18" y="18" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>SKU variability</span></div>
+        <span class="ticker-sep">·</span>
+        <!-- set 2 (duplicate for seamless loop) -->
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10" width="10" height="12" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="19" y="10" width="10" height="12" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M13 16 L19 16" stroke="#b0bcc8" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M8 7 L8 10 M24 7 L24 10" stroke="#b0bcc8" stroke-width="1.5"/><path d="M5 7 L11 7 M21 7 L27 7" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Kitting</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="14" width="24" height="12" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M8 14 L8 10 M16 14 L16 8 M24 14 L24 10" stroke="#b0bcc8" stroke-width="1.5"/><path d="M5 10 L11 10 M13 8 L19 8 M21 10 L27 10" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Warehouse automation</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 10 L16 6 L26 10 L26 22 L16 26 L6 22 Z" stroke="#b0bcc8" stroke-width="1.5"/><path d="M16 6 L16 26" stroke="#b0bcc8" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M6 10 L26 10" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Returns processing</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="12" width="20" height="16" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M6 17 L26 17" stroke="#b0bcc8" stroke-width="1.5"/><path d="M14 8 C14 8 10 6 10 10 L10 12" stroke="#b0bcc8" stroke-width="1.5"/><path d="M18 8 C18 8 22 6 22 10 L22 12" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Custom packing</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="8" width="24" height="18" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M4 14 L28 14" stroke="#b0bcc8" stroke-width="1.5"/><path d="M12 8 L12 14" stroke="#b0bcc8" stroke-width="1.5"/><circle cx="20" cy="20" r="3" stroke="#b0bcc8" stroke-width="1.5"/><path d="M9 20 L14 20" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Order fulfillment</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="13" r="5" stroke="#b0bcc8" stroke-width="1.5"/><path d="M8 27 C8 22 24 22 24 27" stroke="#b0bcc8" stroke-width="1.5"/><path d="M16 18 L16 21" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>Generalist robots</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="14" width="20" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><path d="M22 18 L28 18 L28 20 L22 20" stroke="#b0bcc8" stroke-width="1.5"/><circle cx="7" cy="25" r="2.5" stroke="#b0bcc8" stroke-width="1.5"/><circle cx="17" cy="25" r="2.5" stroke="#b0bcc8" stroke-width="1.5"/><path d="M6 14 L10 8 L18 8 L22 14" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>3PL operations</span></div>
+        <span class="ticker-sep">·</span>
+        <div class="ticker-item"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="18" y="4" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="4" y="18" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/><rect x="18" y="18" width="10" height="10" rx="1" stroke="#b0bcc8" stroke-width="1.5"/></svg><span>SKU variability</span></div>
+        <span class="ticker-sep">·</span>
+    </div>
+</div>
 
 <!-- wave: off-white → midnight -->
 <div class="wave-divider" style="background:#F5F6F7;">
@@ -1037,7 +1090,7 @@
         const rect       = beltOuter.getBoundingClientRect();
         const scrollable = beltOuter.offsetHeight - window.innerHeight;
         if (scrollable <= 0) return 0;
-        return Math.max(0, Math.min(1, -rect.top / scrollable));
+        return Math.max(0, Math.min(1, (-rect.top + window.innerHeight * 0.3) / scrollable));
     }
 
     let prevProgress = null;
