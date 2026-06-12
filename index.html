@@ -25,44 +25,28 @@
 
         html { scroll-behavior: smooth; }
 
-        /* ── Hero robot background ───────────────────────── */
+        /* ── Hero background video ───────────────────────── */
         .hero-wrap { position: relative; overflow: hidden; }
-        .hero-robot {
+        .hero-video {
             position: absolute;
-            right: -3%;
-            bottom: -5%;
-            width: 56%;
-            max-width: 600px;
-            pointer-events: none;
+            inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;      /* fills + crops cleanly at any size */
             z-index: 0;
-            opacity: 0.18;
-            animation: robot-float 10s ease-in-out infinite;
-            filter: drop-shadow(0 0 24px rgba(55,138,221,0.45));
+            pointer-events: none;
         }
-        .hero-robot svg { width: 100%; height: auto; display: block; }
-        @keyframes robot-float {
-            0%,100% { transform: translateY(0px) rotate(0deg); }
-            50%      { transform: translateY(-16px) rotate(0.4deg); }
-        }
-        /* arm joints — transform-origin tuned to each pivot in fill-box coords */
-        .hero-robot .r-link1 {
-            transform-box: fill-box;
-            transform-origin: 91% 92%;   /* shoulder joint */
-            animation: link1-swing 10s ease-in-out infinite;
-        }
-        .hero-robot .r-link2 {
-            transform-box: fill-box;
-            transform-origin: 93% 7%;    /* elbow joint, bbox now includes gripper */
-            animation: link2-swing 10s ease-in-out infinite;
-        }
-        @keyframes link1-swing {
-            0%,100% { transform: rotate(0deg); }
-            50%      { transform: rotate(-4deg); }
-        }
-        @keyframes link2-swing {
-            0%,100% { transform: rotate(0deg); }
-            35%      { transform: rotate(5deg); }
-            70%      { transform: rotate(-3deg); }
+        /* dark gradient so the headline stays legible over the footage */
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(
+                90deg,
+                rgba(15,25,35,0.92) 0%,
+                rgba(15,25,35,0.70) 45%,
+                rgba(15,25,35,0.35) 100%
+            );
+            pointer-events: none;
         }
 
         @media (pointer: fine) {
@@ -142,7 +126,7 @@
 
         /* ── Hero ────────────────────────────────────────── */
         .hero-wrap { background: var(--midnight); }
-        .hero { padding: 120px 48px 100px; max-width: 960px; margin: 0 auto; }
+        .hero { position: relative; z-index: 2; padding: 120px 48px 100px; max-width: 960px; margin: 0 auto; }
         .hero h1 {
             font-size: clamp(44px,6.5vw,84px); font-weight: 800;
             line-height: 1.04; letter-spacing: -2.5px; margin-bottom: 28px;
@@ -453,6 +437,15 @@
 
 <!-- ── Hero ─────────────────────────────────────────────── -->
 <div class="hero-wrap">
+
+<!-- Hero background video -->
+<video class="hero-video" autoplay muted loop playsinline
+       preload="auto" poster="images/robot_kitting-poster.jpg">
+    <source src="videos/robot_kitting.webm" type="video/webm">
+    <source src="videos/robot_kitting.mp4"  type="video/mp4">
+</video>
+<div class="hero-overlay"></div>
+
 <section class="hero">
     <h1>Deploying generalist robots <em>for your warehouse.</em></h1>
     <p>Foundation models are ready. We take robot AI from the lab to the warehouse floor. Guaranteed throughput. Day one.</p>
@@ -461,80 +454,6 @@
         <a href="#belt" class="btn-text">See how it works →</a>
     </div>
 </section>
-
-<!-- Hero robot background illustration -->
-<div class="hero-robot" aria-hidden="true">
-<svg viewBox="0 0 520 400" xmlns="http://www.w3.org/2000/svg"
-     fill="none" stroke="#1A2A3A" stroke-linecap="round" stroke-linejoin="round">
-
-  <!-- ── CONVEYOR BELT (bottom-left) ─────────────────────── -->
-  <!-- Belt top face -->
-  <rect x="10" y="291" width="278" height="24" rx="12" stroke-width="2.5"/>
-  <!-- Left end drum -->
-  <circle cx="23"  cy="303" r="20" stroke-width="3"/>
-  <circle cx="23"  cy="303" r="8"  stroke-width="2"/>
-  <!-- Right end drum -->
-  <circle cx="275" cy="303" r="20" stroke-width="3"/>
-  <circle cx="275" cy="303" r="8"  stroke-width="2"/>
-  <!-- Rollers -->
-  <circle cx="68"  cy="308" r="7" stroke-width="2"/>
-  <circle cx="103" cy="308" r="7" stroke-width="2"/>
-  <circle cx="138" cy="308" r="7" stroke-width="2"/>
-  <circle cx="173" cy="308" r="7" stroke-width="2"/>
-  <circle cx="208" cy="308" r="7" stroke-width="2"/>
-  <circle cx="243" cy="308" r="7" stroke-width="2"/>
-  <!-- Support legs -->
-  <rect x="39"  y="323" width="14" height="50" rx="3" stroke-width="2"/>
-  <rect x="235" y="323" width="14" height="50" rx="3" stroke-width="2"/>
-  <rect x="29"  y="369" width="238" height="11" rx="3" stroke-width="2"/>
-  <!-- Boxes on belt -->
-  <rect x="51"  y="265" width="38" height="27" rx="2" stroke-width="2.5"/>
-  <rect x="109" y="265" width="34" height="27" rx="2" stroke-width="2.5"/>
-  <rect x="163" y="265" width="38" height="27" rx="2" stroke-width="2.5"/>
-
-  <!-- ── ROBOT BASE (bottom-right) ───────────────────────── -->
-  <rect x="342" y="357" width="168" height="43" rx="5" stroke-width="3"/>
-  <rect x="355" y="320" width="142" height="40" rx="4" stroke-width="3"/>
-  <rect x="368" y="294" width="118" height="29" rx="3" stroke-width="3"/>
-
-  <!-- ── SHOULDER JOINT ───────────────────────────────────── -->
-  <circle cx="400" cy="290" r="30" stroke-width="4"/>
-  <circle cx="400" cy="290" r="13" stroke-width="2.5"/>
-
-  <!-- ── UPPER ARM (r-link1) ──────────────────────────────── -->
-  <g class="r-link1">
-    <!-- Arm body outline — parallelogram -->
-    <path d="M 420,272 L 235,70 L 195,106 L 375,308 Z" stroke-width="3"/>
-    <!-- Center spine line -->
-    <line x1="400" y1="290" x2="215" y2="88" stroke-width="1.2" stroke-dasharray="6 5"/>
-  </g>
-
-  <!-- ── ELBOW JOINT ──────────────────────────────────────── -->
-  <circle cx="215" cy="88" r="28" stroke-width="3.5"/>
-  <circle cx="215" cy="88" r="11" stroke-width="2"/>
-
-  <!-- ── FOREARM + WRIST + GRIPPER (r-link2) ─────────────── -->
-  <!-- Gripper is nested here so it follows forearm rotation  -->
-  <!-- New bbox: x=41-228 (w=187), y=75-263 (h=188)          -->
-  <!-- Elbow at (215,88): 93% x, 7% y of that bbox            -->
-  <g class="r-link2">
-    <!-- Forearm body -->
-    <path d="M 202,75 L 228,101 L 95,235 L 69,209 Z" stroke-width="2.5"/>
-    <!-- Center spine -->
-    <line x1="215" y1="88" x2="82" y2="222" stroke-width="1.2" stroke-dasharray="5 5"/>
-    <!-- Wrist joint double ring -->
-    <circle cx="82" cy="222" r="16" stroke-width="3"/>
-    <circle cx="82" cy="222" r="6"  stroke-width="2"/>
-    <!-- Gripper housing, aligned with forearm direction -->
-    <path d="M 88,233 L 71,216 L 57,231 L 74,248 Z" stroke-width="2.5"/>
-    <!-- Left jaw -->
-    <path d="M 74,248 L 68,242 L 52,257 L 58,263 Z" stroke-width="2.5"/>
-    <!-- Right jaw -->
-    <path d="M 62,236 L 57,231 L 41,246 L 47,252 Z" stroke-width="2.5"/>
-  </g>
-
-</svg>
-</div>
 
 </div>
 
