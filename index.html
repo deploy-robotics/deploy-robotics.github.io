@@ -49,18 +49,6 @@
             pointer-events: none;
         }
 
-        @media (pointer: fine) {
-            * { cursor: none !important; }
-            #cursor {
-                position: fixed; top: 0; left: 0;
-                width: 10px; height: 10px; border-radius: 50%;
-                background: var(--signal-blue); pointer-events: none;
-                z-index: 99999; transform: translate(-50%,-50%);
-                transition: opacity .18s ease; will-change: transform;
-            }
-            #cursor.is-hidden { opacity: 0; }
-        }
-
         body {
             background: var(--midnight); color: var(--ghost-white);
             font-family: var(--font); font-size: 16px;
@@ -153,9 +141,23 @@
             animation: pulse-dot 2s ease-in-out infinite;
         }
 
+        /* ── Trust strip (credibility band — fill with REAL data, then uncomment markup below) ── */
+        .trust-strip {
+            background: var(--midnight); border-top: 1px solid var(--border);
+            padding: 28px 48px; display: flex; flex-wrap: wrap; gap: 12px 56px;
+            align-items: center; justify-content: center;
+        }
+        .trust-strip .trust-label {
+            font-size: 11px; font-weight: 500; letter-spacing: .14em;
+            text-transform: uppercase; color: var(--muted); font-family: var(--mono);
+        }
+        .trust-strip .trust-item { font-size: 14px; color: var(--ghost-white); font-weight: 500; }
+        .trust-strip .trust-item strong { color: var(--signal-blue); font-weight: 700; }
+        @media (max-width: 768px) { .trust-strip { padding: 24px; gap: 10px 28px; } }
+
         /* ── Pain ────────────────────────────────────────── */
         .pain { background: var(--off-white); padding: 96px 48px; }
-        .how-strip { background: var(--off-white); padding: 96px 48px; }
+        .how-strip { background: var(--off-white); padding: 120px 48px; }
         .how-strip-inner { display: grid; grid-template-columns: repeat(4,1fr); gap: 40px; }
         .how-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 16px; margin-bottom: 16px; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.10); transition: transform .3s ease, box-shadow .3s ease; }
         .how-card img:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(0,0,0,0.15); }
@@ -212,28 +214,8 @@
             max-width: 380px; margin: 0 auto;
         }
 
-        /* ── Guarantee ───────────────────────────────────── */
-        .guarantee-section { background: var(--deep-navy); padding: 96px 48px; }
-        .guarantee-inner {
-            max-width: 960px; margin: 0 auto;
-            display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; align-items: start;
-        }
-        .guarantee-left h2 {
-            font-size: clamp(32px,4vw,52px); font-weight: 700;
-            letter-spacing: -1.5px; line-height: 1.15; color: var(--ghost-white);
-        }
-        .guarantee-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .guarantee-card { border: 1px solid var(--border); padding: 26px; background: var(--midnight); }
-        .guarantee-card-num {
-            font-size: 11px; font-weight: 500; letter-spacing: 0.14em;
-            color: var(--signal-blue); margin-bottom: 12px; display: block;
-            font-family: var(--mono); text-transform: uppercase;
-        }
-        .guarantee-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--ghost-white); }
-        .guarantee-card p  { font-size: 13px; color: var(--muted); line-height: 1.65; }
-
         /* ── Use Cases ───────────────────────────────────── */
-        .usecases { background: var(--off-white); padding: 96px 48px; }
+        .usecases { background: var(--off-white); padding: 120px 48px; }
         .usecases-inner { max-width: 960px; margin: 0 auto; }
         .usecases-inner h2 {
             font-size: clamp(28px,3.5vw,44px); font-weight: 700;
@@ -252,7 +234,7 @@
         .d-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--deploy-green); flex-shrink: 0; }
 
         /* ── Why Now ─────────────────────────────────────── */
-        .why-now { background: var(--midnight); padding: 96px 48px; }
+        .why-now { background: var(--midnight); padding: 120px 48px; }
         .why-now-header { max-width: 960px; margin: 0 auto 48px; }
         .why-now-inner {
             max-width: 960px; margin: 0 auto;
@@ -286,7 +268,7 @@
         }
 
         /* ── Team ────────────────────────────────────────── */
-        .team { background: var(--deep-navy); padding: 96px 48px; }
+        .team { background: var(--deep-navy); padding: 120px 48px; }
         .team-inner { max-width: 960px; margin: 0 auto; }
         .team-inner h2 {
             font-size: clamp(28px,3.5vw,44px); font-weight: 700;
@@ -315,7 +297,7 @@
         }
 
         /* ── CTA / Contact ───────────────────────────────── */
-        .cta-section { background: var(--midnight); padding: 96px 48px; }
+        .cta-section { background: var(--midnight); padding: 120px 48px; }
         .cta-inner {
             max-width: 960px; margin: 0 auto;
             display: grid; grid-template-columns: 3fr 2fr; gap: 72px; align-items: start;
@@ -391,8 +373,9 @@
             .hero { padding: 72px 24px 64px; }
             .hero h1 { letter-spacing: -1.5px; }
             .wave-divider svg { height: 28px; }
-            .pain { padding: 64px 24px; }
+            .pain { padding: 72px 24px; }
             .pain-inner { grid-template-columns: 1fr; gap: 40px; }
+            .how-strip { padding: 72px 24px; }
             .belt-scroll-outer { height: 220vh; }
             .belt-header { padding: 24px 24px 16px; }
             .belt-header h2 { font-size: 26px; letter-spacing: -1px; }
@@ -400,16 +383,13 @@
             .belt-overlays { top: 6%; width: 92vw; }
             .belt-card h3 { font-size: clamp(18px,5.5vw,24px); }
             .belt-card p  { font-size: 13px; line-height: 1.55; }
-            .guarantee-section { padding: 64px 24px; }
-            .guarantee-inner { grid-template-columns: 1fr; gap: 48px; }
-            .guarantee-cards { grid-template-columns: 1fr; }
-            .usecases { padding: 64px 24px; }
+            .usecases { padding: 72px 24px; }
             .usecases-grid { grid-template-columns: 1fr; }
-            .why-now { padding: 64px 24px; }
+            .why-now { padding: 72px 24px; }
             .why-now-inner { grid-template-columns: 1fr; gap: 48px; }
-            .team { padding: 64px 24px; }
+            .team { padding: 72px 24px; }
             .founders-grid { grid-template-columns: 1fr; }
-            .cta-section { padding: 64px 24px; }
+            .cta-section { padding: 72px 24px; }
             .cta-inner { grid-template-columns: 1fr; gap: 48px; }
             .cta-right { border-left: none; padding-left: 0; border-top: 1px solid var(--border); padding-top: 40px; }
             footer { padding: 24px 20px; flex-direction: column; text-align: center; }
@@ -417,8 +397,6 @@
     </style>
 </head>
 <body>
-
-<div id="cursor"></div>
 
 <!-- ── Nav ──────────────────────────────────────────────── -->
 <nav>
@@ -456,6 +434,23 @@
 </section>
 
 </div>
+
+<!-- ══ CREDIBILITY / TRUST STRIP ══════════════════════════════
+     Proof is the biggest professionalism lever (cf. Applied Intuition:
+     partner logos, "1,000+ engineers"). Deploy has none yet.
+     Fill the items below with REAL data, then delete these comment
+     markers to make it live. Do NOT ship placeholder/invented numbers.
+     Examples of things you can drop in: throughput SLA you commit to,
+     number of pilots/stations running, a backer/accelerator name,
+     years of robotics experience on the team.
+
+<section class="trust-strip">
+    <span class="trust-label">Trusted by</span>
+    <span class="trust-item"><strong>REPLACE</strong> pilots running</span>
+    <span class="trust-item"><strong>REPLACE%</strong> throughput SLA</span>
+    <span class="trust-item">Backed by <strong>REPLACE</strong></span>
+</section>
+═══════════════════════════════════════════════════════════ -->
 
 
 <!-- wave: midnight → off-white -->
@@ -538,69 +533,19 @@
 </section>
 </div>
 
-<!-- wave: midnight → deep-navy -->
+<!-- wave: midnight → off-white -->
 <div class="wave-divider" style="background:#0F1923;">
     <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" fill="#1A2A3A"/>
-    </svg>
-</div>
-
-<!-- ── Guarantee ─────────────────────────────────────────── -->
-<section class="guarantee-section">
-    <div class="guarantee-inner">
-        <div class="guarantee-left">
-            <span class="label">The Deploy Promise</span>
-            <h2>We guarantee<br>the work<br>gets done.</h2>
-        </div>
-        <div class="guarantee-cards">
-            <div class="guarantee-card">
-                <span class="guarantee-card-num">01</span>
-                <h4>Teleop safety net</h4>
-                <p>Our failure detection triggers remote teleoperation before the robot fails. A human completes the task in the loop. The line keeps running.</p>
-            </div>
-            <div class="guarantee-card">
-                <span class="guarantee-card-num">02</span>
-                <h4>Uptime SLA</h4>
-                <p>We commit to throughput targets, not "up to X% accuracy." We take on the operational risk.</p>
-            </div>
-            <div class="guarantee-card">
-                <span class="guarantee-card-num">03</span>
-                <h4>No long setup cycles</h4>
-                <p>Works alongside your existing warehouse operations. No infrastructure overhaul, no months of integration work.</p>
-            </div>
-            <div class="guarantee-card">
-                <span class="guarantee-card-num">04</span>
-                <h4>Gets smarter over time</h4>
-                <p>Every deployment improves with your specific SKUs and layouts. The longer you run, the better it gets.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- wave: deep-navy → off-white -->
-<div class="wave-divider" style="background:#1A2A3A;">
-    <svg viewBox="0 0 1440 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,24 C360,0 1080,48 1440,24 L1440,48 L0,48 Z" fill="#F5F6F7"/>
+        <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" fill="#F5F6F7"/>
     </svg>
 </div>
 
 <!-- ── Use Cases ──────────────────────────────────────────── -->
 <section class="usecases">
     <div class="usecases-inner">
-        <span class="label" style="color:#378ADD;">Where we start</span>
+        <span class="label">Where we start</span>
         <h2>Built for the work that<br>changes every week.</h2>
         <div class="usecases-grid">
-            <div class="usecase-card">
-                <div class="usecase-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 10 L16 6 L26 10 L26 22 L16 26 L6 22 Z" stroke="#378ADD" stroke-width="1.5"/>
-                        <path d="M16 6 L16 26" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="2 2"/>
-                        <path d="M6 10 L26 10" stroke="#378ADD" stroke-width="1.5"/>
-                    </svg>
-                </div>
-                <h3>Returns processing</h3>
-                <p>High-variability, growing fast, and completely unautomated. Every return is different — exactly where generalist robots outperform fixed automation.</p>
-            </div>
             <div class="usecase-card">
                 <div class="usecase-icon">
                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -613,6 +558,29 @@
                 </div>
                 <h3>Kitting &amp; assembly</h3>
                 <p>Multi-component kits assembled to spec. Adapts to new configurations without reprogramming.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 8 L25 8 L23 12 L9 12 Z" stroke="#378ADD" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M9 12 L9 26 L23 26 L23 12" stroke="#378ADD" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M9 16 L23 16" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="2 2"/>
+                        <rect x="13" y="19" width="6" height="5" rx="0.5" stroke="#378ADD" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <h3>Autobagging</h3>
+                <p>High-speed poly bagging for single- and multi-item orders. The robot picks, bags, and seals — adjusting to size and count on the fly.</p>
+            </div>
+            <div class="usecase-card">
+                <div class="usecase-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 10 L16 6 L26 10 L26 22 L16 26 L6 22 Z" stroke="#378ADD" stroke-width="1.5"/>
+                        <path d="M16 6 L16 26" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="2 2"/>
+                        <path d="M6 10 L26 10" stroke="#378ADD" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <h3>Returns processing</h3>
+                <p>High-variability, growing fast, and completely unautomated. Every return is different — exactly where generalist robots outperform fixed automation.</p>
             </div>
             <div class="usecase-card">
                 <div class="usecase-icon">
@@ -1101,21 +1069,6 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyW3iF4EtgOUUmm
                 <p>We'll review your request and get back to you within 48 hours.</p>
             </div>`;
     });
-})();
-</script>
-
-<script>
-// ── Custom cursor ─────────────────────────────────────────
-(function () {
-    const el = document.getElementById('cursor');
-    if (!el) return;
-    if (!window.matchMedia('(pointer: fine)').matches) return;
-
-    document.addEventListener('mousemove', e => {
-        el.style.transform = `translate(calc(${e.clientX}px - 50%), calc(${e.clientY}px - 50%))`;
-        el.classList.remove('is-hidden');
-    });
-    document.addEventListener('mouseleave', () => el.classList.add('is-hidden'));
 })();
 </script>
 
